@@ -1,38 +1,255 @@
-.App {
-  text-align: center;
+:root {
+  --bg: #f4f5f7;
+  --panel-bg: #ffffff;
+  --border: #d9dce1;
+  --text: #1f2430;
+  --muted: #6b7280;
+  --accent: #3a7ca5;
+
+  --dial-face: #eef0f3;
+  --dial-border: #333;
+  --dial-tick: #333;
+  --dial-hub: #1f2430;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+body {
+  background: var(--bg);
+  color: var(--text);
 }
 
-.App-header {
-  background-color: #282c34;
+.app {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-header h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #c0392b;
+}
+
+.status-dot[data-connected="true"] {
+  background: #2e9e4f;
+}
+
+.app-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  padding: 16px;
+  align-items: start;
+}
+
+.app-main-column,
+.app-side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.panel h2 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.hint {
+  font-weight: normal;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.map-container {
+  height: 420px;
+  width: 100%;
+  border-radius: 6px;
+  z-index: 0;
+}
+
+.dial-row {
+  display: flex;
+  gap: 20px;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+
+.dial {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+  gap: 4px;
+}
+
+.dial-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.dial-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.stats-table td {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.stats-table td:first-child {
+  color: var(--muted);
+}
+
+.stats-table td:last-child {
+  text-align: right;
+  font-weight: 600;
+}
+
+.empty-state {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.add-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.add-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.add-form button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  background: var(--accent);
   color: white;
+  cursor: pointer;
 }
 
-.App-link {
-  color: #61dafb;
+.item-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+}
+
+.drag-handle {
+  cursor: grab;
+  color: var(--muted);
+}
+
+.item-coord {
+  flex: 1;
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.delete-button {
+  border: none;
+  background: #c0392b;
+  color: white;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.clear-button {
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.boat-marker div {
+  font-size: 20px;
+  line-height: 1;
+  color: #3a7ca5;
+  text-shadow: 0 0 2px white, 0 0 2px white;
+}
+
+.waypoint-marker div {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #911084;
+  border: 2px solid white;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+.buoy-marker div {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffa500;
+  border: 2px solid white;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 900px) {
+  .app-layout {
+    grid-template-columns: 1fr;
   }
 }
