@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Boat = require('../models/Boat');
+const { sendManualControl, setControlMode } = require('../services/rosService');
 
 /**
  * @route   GET /api/boat
@@ -38,6 +39,67 @@ router.post('/update', async (req, res) => {
         res.status(200).json(updatedBoat);
     } catch (err) {
         res.status(400).json({ error: err.message });
+    }
+});
+
+/**
+ * @route   POST /api/boat/control
+ * @desc    Manual rudder/sail override from the web UI. Publishes to
+ *          /sailbot/webserver_rudder and /sailbot/webserver_sail, and
+ *          records the commanded angles as the boat's "target" values.
+ * @access  Public
+ */
+router.post('/control', async (req, res) => {
+    const { rudder, sail } = req.body;
+    const rudderNum = rudder === undefined ? undefined : Number(rudder);
+    const sailNum = sail === undefined ? undefined : Number(sail);
+
+    if (rudderNum === undefined && sailNum === undefined) {
+        return res.status(400).json({ error: 'Request must include rudder and/or sail' });
+    }
+    if (rudderNum !== undefined && !Number.isFinite(rudderNum)) {
+        return res.status(400).json({ error: 'rudder must be a number' });
+    }
+    if (sailNum !== undefined && !Number.isFinite(sailNum)) {
+        return res.status(400).json({ error: 'sail must be a number' });
+    }
+
+    try {
+        sendManualControl({ rudder: rudderNum, sail: sailNum });
+
+        const update = { updatedAt: Date.now() };
+        if (rudderNum !== undefined) update.targetRudderAngle = rudderNum;
+        if (sailNum !== undefined) update.targetSailAngle = sailNum;
+
+        const updatedBoat = await Boat.findOneAndUpdate({}, { $set: update }, { upsert: true, new: true, runValidators: true });
+        res.status(200).json(updatedBoat);
+    } catch (err) {
+        res.status(502).json({ error: err.message });
+    }
+});
+
+/**
+ * @route   POST /api/boat/mode
+ * @desc    Switch control mode (algo / radio / webserver / controller_app).
+ *          Publishes to /sailbot/control_mode.
+ * @access  Public
+ */
+router.post('/mode', async (req, res) => {
+    const { mode } = req.body;
+    if (!mode) {
+        return res.status(400).json({ error: 'Request must include mode' });
+    }
+
+    try {
+        const normalized = setControlMode(mode);
+        const updatedBoat = await Boat.findOneAndUpdate(
+            {},
+            { $set: { controlMode: normalized, updatedAt: Date.now() } },
+            { upsert: true, new: true, runValidators: true }
+        );
+        res.status(200).json(updatedBoat);
+    } catch (err) {
+        res.status(502).json({ error: err.message });
     }
 });
 

@@ -1,70 +1,133 @@
-# Getting Started with Create React App
+# Sailbot Dashboard (Frontend)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React dashboard for the sailbot: live telemetry, a Google Maps view of the
+boat/waypoints/buoys, and full manual control (rudder/sail override, mode
+switching, station keeping, algorithm tuning, computer-vision tuning). It
+talks to the Express backend in `../backend`, which in turn talks to the
+boat over `rosbridge`.
 
-## Available Scripts
+## 1. Prerequisites
 
-In the project directory, you can run:
+- Node.js (v18+) and npm
+- MongoDB running locally at `mongodb://127.0.0.1:27017` (the backend
+  connects to a `sailbot` database there — see `../backend/src/config/db.js`)
+- A `rosbridge_server` reachable from the backend (default
+  `ws://localhost:9090`) if you want live boat data instead of an empty
+  dashboard
+- A Google Maps JavaScript API key (Maps JavaScript API enabled on it) —
+  the map won't render without one
 
-### `npm start`
+## 2. One-time setup
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```bash
+# from src/webserver/backend
+npm install
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+# from src/webserver/frontend
+npm install
+```
 
-### `npm test`
+Add your Google Maps key to `src/webserver/frontend/.env`:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```
+REACT_APP_GOOGLE_MAPS_API_KEY=your-key-here
+```
 
-### `npm run build`
+(`.env` is gitignored — `.env.example` documents the variable name for
+anyone else setting this up.)
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 3. Running it
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Start the backend first (it owns the ROS/Mongo connections and serves the
+REST API on port 5000):
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+cd src/webserver/backend
+ROSBRIDGE_URL=ws://localhost:9090 npm start
+```
 
-### `npm run eject`
+`ROSBRIDGE_URL` is optional — it defaults to `ws://localhost:9090`. You can
+also change it at runtime from the dashboard itself (see "ROS connection"
+below) without restarting the backend.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Then, in a second terminal, start the frontend dev server:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+cd src/webserver/frontend
+npm start
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+This opens `http://localhost:3000`. In development, CRA's proxy (see the
+`proxy` field in `package.json`) forwards any `/api/*` request to the
+backend at `localhost:5000`, so you don't need to configure CORS or hosts
+by hand.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+To run against a real boat/robot, point `ROSBRIDGE_URL` (or the runtime
+connect field) at the boat's rosbridge address instead of localhost.
 
-## Learn More
+## 4. What's on the dashboard
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+**Header**
+- Connection status dot + current rosbridge URL.
+- A "connect" field to repoint the backend at a different rosbridge URL at
+  runtime (e.g. switching between a simulator and the real boat) without
+  restarting anything.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+**Map** (main column)
+- Boat position with heading, a 60-second position trail, waypoints, and
+  buoys, all on Google Maps.
+- Double-click the map to add a waypoint at that point.
+- Click any marker for details / a delete button.
+- Live mouse lat/lng readout while hovering the map.
 
-### Code Splitting
+**Telemetry** (main column)
+- Heading / rudder / sail gauges.
+- Wind angle, control mode, event mode, tacking state, distance to
+  destination, target vs. radio vs. algo rudder/sail angles, dropped
+  packet count.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+**Station Keeping** (main column)
+- Enter 4 corner lat/lng pairs and hit "Activate Station Keeping" to hold
+  position in that rectangle, or "End" to return to manual mode.
 
-### Analyzing the Bundle Size
+**Computer Vision** (main column)
+- HSV lower/upper color thresholds (3 comma-separated ints each) and a
+  detection threshold, each published live to the vision node.
+- Buoy distance readout with a proximity alert (flag icon) once the boat
+  gets within 2 units of a tracked buoy.
+- Activate/End CV search mode.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+**Control Mode** (side column)
+- Switch between Algo / Radio / Webserver / Controller App control modes.
 
-### Making a Progressive Web App
+**Manual Control** (side column)
+- Directly command a rudder or sail angle from the browser (bypasses the
+  algorithm entirely — useful for bench testing).
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+**Zone Config** (side column)
+- Tune the no-go zone, neutral zone, and tacking buffer angles.
 
-### Advanced Configuration
+**Waypoints / Buoys** (side column)
+- Add, delete, and drag-to-reorder waypoints; add/delete buoys. Both are
+  persisted in MongoDB via the backend, independent of ROS connectivity.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## 5. Building for production
 
-### Deployment
+```bash
+npm run build
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+Serve the resulting `build/` folder from the backend's Express app (or any
+static host) with the backend's `/api` routes reachable from the same
+origin, since there's no CRA proxy outside of `npm start`.
 
-### `npm run build` fails to minify
+## 6. Troubleshooting
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- **Map is blank / console shows a Google Maps auth error** — check
+  `REACT_APP_GOOGLE_MAPS_API_KEY` in `.env` and that the key has the Maps
+  JavaScript API enabled.
+- **Status dot stays red** — the backend isn't connected to rosbridge.
+  Confirm rosbridge is running at the URL shown next to the status dot, or
+  use the header's connect field to point at the right one.
+- **Waypoints/buoys don't save** — the backend can't reach MongoDB; check
+  it's running locally on the default port.

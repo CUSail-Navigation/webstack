@@ -4,7 +4,18 @@ const Boat = require('../models/Boat');
 const ROSBRIDGE_URL = process.env.ROSBRIDGE_URL || 'ws://localhost:9090';
 let ros = null;
 let waypointService = null;
+let setModeService = null;
+let webserverRudderTopic = null;
+let webserverSailTopic = null;
+let controlModeTopic = null;
+let noGoZoneTopic = null;
+let neutralZoneTopic = null;
+let tackingBufferTopic = null;
+let hsvLowerTopic = null;
+let hsvUpperTopic = null;
+let detectionThresholdTopic = null;
 let isConnected = false;
+let currentUrl = ROSBRIDGE_URL;
 
 const log = (...args) => {
     console.log('[ROS SERVICE]', ...args);
@@ -134,6 +145,18 @@ const initTopics = () => {
     }, (message) => parseTopicMessage(message, 'actualSailAngle'));
 
     subscribe({
+        name: '/sailbot/radio_rudder',
+        messageType: 'std_msgs/msg/Int32',
+        throttle_rate: 1000
+    }, (message) => parseTopicMessage(message, 'radioRudder'));
+
+    subscribe({
+        name: '/sailbot/radio_sail',
+        messageType: 'std_msgs/msg/Int32',
+        throttle_rate: 1000
+    }, (message) => parseTopicMessage(message, 'radioSail'));
+
+    subscribe({
         name: '/sailbot/wind',
         messageType: 'std_msgs/msg/Int32',
         throttle_rate: 1000
@@ -144,6 +167,24 @@ const initTopics = () => {
         messageType: 'std_msgs/msg/String',
         throttle_rate: 1000
     }, (message) => parseTopicMessage(message, 'controlMode'));
+
+    subscribe({
+        name: '/sailbot/current_mode',
+        messageType: 'std_msgs/msg/String',
+        throttle_rate: 1000
+    }, (message) => parseTopicMessage(message, 'eventMode'));
+
+    subscribe({
+        name: '/sailbot/rudder_angle',
+        messageType: 'std_msgs/msg/Int32',
+        throttle_rate: 1000
+    }, (message) => parseTopicMessage(message, 'rudderAngle'));
+
+    subscribe({
+        name: '/sailbot/sail',
+        messageType: 'std_msgs/msg/Int32',
+        throttle_rate: 1000
+    }, (message) => parseTopicMessage(message, 'sailAngle'));
 
     subscribe({
         name: '/sailbot/dropped_packets',
@@ -162,6 +203,72 @@ const initTopics = () => {
         name: '/sailbot/mutate_waypoint_queue',
         serviceType: 'sailboat_interface/srv/Waypoint'
     });
+
+    setModeService = new ROSLIB.Service({
+        ros,
+        name: 'sailbot/set_mode',
+        serviceType: 'sailboat_interface/srv/SetModeWithParams'
+    });
+
+    webserverRudderTopic = new ROSLIB.Topic({
+        ros,
+        name: '/sailbot/webserver_rudder',
+        messageType: 'std_msgs/msg/Int32'
+    });
+
+    webserverSailTopic = new ROSLIB.Topic({
+        ros,
+        name: '/sailbot/webserver_sail',
+        messageType: 'std_msgs/msg/Int32'
+    });
+
+    controlModeTopic = new ROSLIB.Topic({
+        ros,
+        name: '/sailbot/control_mode',
+        messageType: 'std_msgs/msg/String'
+    });
+
+    noGoZoneTopic = new ROSLIB.Topic({
+        ros,
+        name: '/sailbot/no_go_zone',
+        messageType: 'std_msgs/msg/Int32'
+    });
+
+    neutralZoneTopic = new ROSLIB.Topic({
+        ros,
+        name: '/sailbot/neutral_zone',
+        messageType: 'std_msgs/msg/Int32'
+    });
+
+    tackingBufferTopic = new ROSLIB.Topic({
+        ros,
+        name: '/sailbot/tacking_buffer',
+        messageType: 'std_msgs/msg/Int32'
+    });
+
+    hsvLowerTopic = new ROSLIB.Topic({
+        ros,
+        name: '/sailbot/update_hsv_lower',
+        messageType: 'std_msgs/msg/Int32MultiArray'
+    });
+
+    hsvUpperTopic = new ROSLIB.Topic({
+        ros,
+        name: '/sailbot/update_hsv_upper',
+        messageType: 'std_msgs/msg/Int32MultiArray'
+    });
+
+    detectionThresholdTopic = new ROSLIB.Topic({
+        ros,
+        name: '/sailbot/update_detection_threshold',
+        messageType: 'std_msgs/msg/Int32'
+    });
+
+    subscribe({
+        name: '/sailbot/buoy_distance',
+        messageType: 'std_msgs/msg/Float32',
+        throttle_rate: 1000
+    }, (message) => parseTopicMessage(message, 'buoyDistance'));
 };
 
 const connectROS = (rosbridgeUrl = ROSBRIDGE_URL) => {
@@ -170,6 +277,7 @@ const connectROS = (rosbridgeUrl = ROSBRIDGE_URL) => {
     }
 
     log('Connecting to ROS at', rosbridgeUrl);
+    currentUrl = rosbridgeUrl;
     ros = new ROSLIB.Ros({ url: rosbridgeUrl });
 
     ros.on('connection', () => {
@@ -189,6 +297,18 @@ const connectROS = (rosbridgeUrl = ROSBRIDGE_URL) => {
     });
 
     return ros;
+};
+
+// Tear down the current rosbridge connection (if any) and open a new one at
+// `rosbridgeUrl` — lets the web UI point at a different rosbridge at runtime,
+// mirroring the old dashboard's "ros-url" connect field.
+const reconnectROS = (rosbridgeUrl) => {
+    if (ros) {
+        ros.close();
+        ros = null;
+        isConnected = false;
+    }
+    return connectROS(rosbridgeUrl);
 };
 
 const sendWaypointToRobot = async (waypointData) => {
@@ -220,10 +340,129 @@ const sendWaypointToRobot = async (waypointData) => {
     });
 };
 
-const getStatus = () => ({ connected: isConnected, url: ROSBRIDGE_URL });
+const sendManualControl = ({ rudder, sail }) => {
+    if (!isConnected) {
+        throw new Error('ROS is not connected');
+    }
+
+    if (typeof rudder === 'number' && webserverRudderTopic) {
+        webserverRudderTopic.publish(new ROSLIB.Message({ data: Math.round(rudder) }));
+    }
+
+    if (typeof sail === 'number' && webserverSailTopic) {
+        webserverSailTopic.publish(new ROSLIB.Message({ data: Math.round(sail) }));
+    }
+};
+
+const VALID_MODES = ['algo', 'radio', 'webserver', 'controller_app'];
+
+const setControlMode = (mode) => {
+    if (!isConnected || !controlModeTopic) {
+        throw new Error('ROS is not connected');
+    }
+
+    const normalized = String(mode).toLowerCase();
+    if (!VALID_MODES.includes(normalized)) {
+        throw new Error(`Unknown mode "${mode}". Expected one of: ${VALID_MODES.join(', ')}`);
+    }
+
+    controlModeTopic.publish(new ROSLIB.Message({ data: normalized }));
+    log('Published control mode', normalized);
+    return normalized;
+};
+
+const publishIntTopic = (topic, name, value) => {
+    if (!isConnected || !topic) {
+        throw new Error('ROS is not connected');
+    }
+    const intValue = parseInt(value, 10);
+    if (Number.isNaN(intValue)) {
+        throw new Error(`${name} must be an integer`);
+    }
+    topic.publish(new ROSLIB.Message({ data: intValue }));
+    log(`Published ${name}`, intValue);
+    return intValue;
+};
+
+const setNoGoZone = (value) => publishIntTopic(noGoZoneTopic, 'no_go_zone', value);
+const setNeutralZone = (value) => publishIntTopic(neutralZoneTopic, 'neutral_zone', value);
+const setTackingBuffer = (value) => publishIntTopic(tackingBufferTopic, 'tacking_buffer', value);
+
+const callSetMode = (request) => {
+    if (!isConnected || !setModeService) {
+        return Promise.reject(new Error('ROS is not connected'));
+    }
+    return new Promise((resolve, reject) => {
+        setModeService.callService(new ROSLIB.ServiceRequest(request), (result) => {
+            if (result && result.success) {
+                log('set_mode succeeded', request.mode, result.message);
+                resolve(result);
+            } else {
+                reject(new Error((result && result.message) || `Failed to set mode "${request.mode}"`));
+            }
+        }, (error) => {
+            reject(error instanceof Error ? error : new Error(String(error)));
+        });
+    });
+};
+
+// corners: array of 4 { latitude, longitude } objects, in order.
+const activateStationKeeping = (corners) => {
+    if (!Array.isArray(corners) || corners.length !== 4) {
+        return Promise.reject(new Error('Station keeping requires exactly 4 corners'));
+    }
+    const station_rect_points = corners.map(({ latitude, longitude }) => {
+        if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+            throw new Error('Each corner must have numeric latitude and longitude');
+        }
+        return { x: longitude, y: latitude, z: 0.0 };
+    });
+
+    return callSetMode({
+        mode: 'station_keeping',
+        station_rect_points,
+        search_center_point: { x: 0.0, y: 0.0, z: 0.0 }
+    });
+};
+
+// Shared "cancel back to manual" used by both station keeping and CV mode.
+const setManualMode = () => callSetMode({ mode: 'manual' });
+
+const activateCV = () => callSetMode({ mode: 'search' });
+
+const publishHsv = (topic, name, values) => {
+    if (!isConnected || !topic) {
+        throw new Error('ROS is not connected');
+    }
+    if (!Array.isArray(values) || values.length !== 3 || values.some((v) => !Number.isFinite(v))) {
+        throw new Error(`${name} must be an array of 3 numbers`);
+    }
+    const data = values.map((v) => Math.round(v));
+    topic.publish(new ROSLIB.Message({ data }));
+    log(`Published ${name}`, data);
+    return data;
+};
+
+const setHsvLower = (values) => publishHsv(hsvLowerTopic, 'hsv_lower', values);
+const setHsvUpper = (values) => publishHsv(hsvUpperTopic, 'hsv_upper', values);
+const setDetectionThreshold = (value) => publishIntTopic(detectionThresholdTopic, 'detection_threshold', value);
+
+const getStatus = () => ({ connected: isConnected, url: currentUrl });
 
 module.exports = {
     connectROS,
+    reconnectROS,
     sendWaypointToRobot,
+    sendManualControl,
+    setControlMode,
+    setNoGoZone,
+    setNeutralZone,
+    setTackingBuffer,
+    activateStationKeeping,
+    setManualMode,
+    activateCV,
+    setHsvLower,
+    setHsvUpper,
+    setDetectionThreshold,
     getStatus
 };

@@ -4,6 +4,8 @@ const waypointRoutes = require('./routes/waypointRoutes');
 const boatRoutes = require('./routes/boatRoutes');
 const buoyRoutes = require('./routes/buoyRoutes');
 const rosRoutes = require('./routes/rosRoutes');
+const algoRoutes = require('./routes/algoRoutes');
+const missionRoutes = require('./routes/missionRoutes');
 
 const app = express();
 
@@ -20,5 +22,7 @@ app.use("/api/waypoints", waypointRoutes);
 app.use("/api/boat", boatRoutes);
 app.use('/api/buoy', buoyRoutes);
 app.use('/api/ros', rosRoutes);
+app.use('/api/algo', algoRoutes);
+app.use('/api/mission', missionRoutes);
 
 module.exports = app; // Export it so server.js can use it

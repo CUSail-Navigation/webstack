@@ -28,6 +28,7 @@ export default function TelemetryPanel() {
         <tbody>
           <tr><td>Wind angle</td><td>{fmt(boat?.windAngle)}°</td></tr>
           <tr><td>Control mode</td><td>{boat?.controlMode ?? '—'}</td></tr>
+          <tr><td>Event mode</td><td>{boat?.eventMode ?? '—'}</td></tr>
           <tr><td>Tacking</td><td>{boat?.tacking ? 'Yes' : 'No'}</td></tr>
           <tr><td>Distance to dest</td><td>{fmt(boat?.distToDest)} m</td></tr>
           <tr><td>Target rudder / sail</td><td>{fmt(boat?.targetRudderAngle)}° / {fmt(boat?.targetSailAngle)}°</td></tr>

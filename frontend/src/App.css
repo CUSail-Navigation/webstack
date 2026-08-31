@@ -1,15 +1,19 @@
 :root {
-  --bg: #f4f5f7;
+  --bg: #f6f7fb;
   --panel-bg: #ffffff;
-  --border: #d9dce1;
-  --text: #1f2430;
+  --border: #e4e7ec;
+  --text: #1a1d29;
   --muted: #6b7280;
   --accent: #3a7ca5;
+  --accent-hover: #2f6488;
+  --danger: #d64545;
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
 
-  --dial-face: #eef0f3;
-  --dial-border: #333;
-  --dial-tick: #333;
-  --dial-hub: #1f2430;
+  --dial-face: #f2f4f7;
+  --dial-border: #d0d5dd;
+  --dial-tick: #9aa2b1;
+  --dial-hub: #1a1d29;
 }
 
 * {
@@ -19,6 +23,8 @@
 body {
   background: var(--bg);
   color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 .app {
@@ -31,33 +37,69 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
+  padding: 14px 24px;
   background: var(--panel-bg);
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .app-header h1 {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
+  font-weight: 600;
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 .status-bar {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--muted);
 }
 
 .status-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: #c0392b;
+  background: var(--danger);
+  box-shadow: 0 0 0 3px rgba(214, 69, 69, 0.15);
 }
 
 .status-dot[data-connected="true"] {
   background: #2e9e4f;
+  box-shadow: 0 0 0 3px rgba(46, 158, 79, 0.15);
+}
+
+.ros-url-form {
+  display: flex;
+  gap: 6px;
+  margin-left: 12px;
+}
+
+.ros-url-form input {
+  width: 170px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.78rem;
+  background: var(--bg);
+}
+
+.ros-url-form button {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+
+.ros-url-form button:hover {
+  background: var(--accent-hover);
 }
 
 .app-layout {
@@ -65,8 +107,11 @@ body {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 16px;
-  padding: 16px;
+  padding: 20px 24px;
   align-items: start;
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .app-main-column,
@@ -79,33 +124,67 @@ body {
 .panel {
   background: var(--panel-bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
 }
 
 .panel h2 {
   margin: 0 0 12px;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.panel-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.panel-header h2 {
+  margin: 0;
 }
 
 .hint {
   font-weight: normal;
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
+}
+
+.mouse-pos {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
 }
 
 .map-container {
-  height: 420px;
+  position: relative;
+  height: 440px;
   width: 100%;
-  border-radius: 6px;
-  z-index: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.map-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dial-face);
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 
 .dial-row {
   display: flex;
   gap: 20px;
   justify-content: space-around;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .dial {
@@ -116,7 +195,7 @@ body {
 }
 
 .dial-label {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--muted);
 }
 
@@ -128,12 +207,16 @@ body {
 .stats-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .stats-table td {
-  padding: 4px 0;
+  padding: 7px 2px;
   border-bottom: 1px solid var(--border);
+}
+
+.stats-table tr:last-child td {
+  border-bottom: none;
 }
 
 .stats-table td:first-child {
@@ -143,11 +226,12 @@ body {
 .stats-table td:last-child {
   text-align: right;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .empty-state {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .add-form {
@@ -159,18 +243,36 @@ body {
 .add-form input {
   flex: 1;
   min-width: 0;
-  padding: 6px 8px;
+  padding: 7px 10px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: var(--bg);
+  transition: border-color 120ms ease;
 }
 
-.add-form button {
-  padding: 6px 12px;
+.add-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--panel-bg);
+}
+
+.add-form button,
+.panel button:not(.delete-button):not(.clear-button) {
+  padding: 7px 14px;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--accent);
   color: white;
   cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background 120ms ease;
+}
+
+.add-form button:hover,
+.panel button:not(.delete-button):not(.clear-button):hover {
+  background: var(--accent-hover);
 }
 
 .item-list {
@@ -186,9 +288,9 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
+  padding: 7px 10px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--bg);
 }
 
@@ -199,18 +301,24 @@ body {
 
 .item-coord {
   flex: 1;
-  font-family: monospace;
-  font-size: 0.85rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
 }
 
 .delete-button {
   border: none;
-  background: #c0392b;
-  color: white;
-  border-radius: 4px;
+  background: transparent;
+  color: var(--danger);
+  border-radius: 6px;
   padding: 4px 8px;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  transition: background 120ms ease;
+}
+
+.delete-button:hover {
+  background: rgba(214, 69, 69, 0.1);
 }
 
 .clear-button {
@@ -218,34 +326,61 @@ body {
   border: 1px solid var(--border);
   background: transparent;
   color: var(--muted);
-  border-radius: 4px;
-  padding: 6px 10px;
+  border-radius: 6px;
+  padding: 7px 12px;
   cursor: pointer;
+  font-size: 0.82rem;
+  transition: background 120ms ease;
 }
 
-.boat-marker div {
-  font-size: 20px;
-  line-height: 1;
-  color: #3a7ca5;
-  text-shadow: 0 0 2px white, 0 0 2px white;
+.clear-button:hover {
+  background: var(--bg);
 }
 
-.waypoint-marker div {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #911084;
-  border: 2px solid white;
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+.red-flag-alert {
+  display: block;
+  width: 32px;
+  height: auto;
+  margin: 8px 0;
 }
 
-.buoy-marker div {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #ffa500;
-  border: 2px solid white;
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+.button-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.button-row .clear-button {
+  margin-top: 0;
+}
+
+.mode-select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.mode-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--panel-bg);
+}
+
+.form-status {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+}
+
+.form-status-ok {
+  color: #2e9e4f;
+}
+
+.form-status-error {
+  color: var(--danger);
 }
 
 @media (max-width: 900px) {
