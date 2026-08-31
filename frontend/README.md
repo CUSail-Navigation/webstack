@@ -11,49 +11,101 @@ boat over `rosbridge`.
 - Node.js (v18+) and npm
 - MongoDB running locally at `mongodb://127.0.0.1:27017` (the backend
   connects to a `sailbot` database there — see `../backend/src/config/db.js`)
-- A `rosbridge_server` reachable from the backend (default
-  `ws://localhost:9090`) if you want live boat data instead of an empty
-  dashboard
-- A Google Maps JavaScript API key (Maps JavaScript API enabled on it) —
-  the map won't render without one
+- A ROS 2 stack with `rosbridge_server` running, reachable from the backend
+  (default `ws://localhost:9090`) if you want live boat data instead of an
+  empty dashboard — see "Connecting to ROS 2" below
+- A Google Maps JavaScript API key — the map won't render without one, see
+  "Google Maps setup" below
 
 ## 2. One-time setup
 
 ```bash
-# from src/webserver/backend
+# from backend/
 npm install
 
-# from src/webserver/frontend
+# from frontend/
 npm install
 ```
 
-Add your Google Maps key to `src/webserver/frontend/.env`:
+Create `frontend/.env` with your Google Maps key:
 
 ```
 REACT_APP_GOOGLE_MAPS_API_KEY=your-key-here
 ```
 
-(`.env` is gitignored — `.env.example` documents the variable name for
-anyone else setting this up.)
+Follow the format in `frontend/.env.example`. `.env` is gitignored, so this
+step is per-machine — see "Google Maps setup" below for how to get a key.
 
-## 3. Running it
+## 3. Connecting to ROS 2
+
+The backend is the only thing that talks to ROS — it connects to a
+`rosbridge_server` websocket (from the `rosbridge_suite` package) and
+bridges ROS topics/services to the REST API the frontend calls. The
+frontend itself never talks to ROS directly.
+
+1. Make sure your ROS 2 stack is running and `rosbridge_websocket` is
+   launched (this is normally already part of the sailbot's own launch
+   files — see `sailboat_launch` in the main `sailbot` repo). By default it
+   listens on `ws://localhost:9090`.
+2. Point the backend at it, either via an env var when you start it:
+
+   ```bash
+   cd backend
+   ROSBRIDGE_URL=ws://localhost:9090 npm start
+   ```
+
+   or, if you leave `ROSBRIDGE_URL` unset, it defaults to
+   `ws://localhost:9090` anyway.
+3. To switch which rosbridge the backend talks to *without* restarting it
+   (e.g. bouncing between a simulator and the real boat, or a boat on a
+   different IP on the dock network), use the URL field next to the
+   connection status dot in the dashboard header — it calls
+   `POST /api/ros/connect` and reconnects live.
+4. The status dot in the header is green when the backend has an active
+   rosbridge connection, red otherwise. If it stays red, confirm rosbridge
+   is actually reachable at that address (`ws://<host>:9090`) from wherever
+   the backend is running — firewalls and being on the wrong subnet are the
+   usual culprits.
+
+## 4. Google Maps setup
+
+The map component (`src/components/BoatMap.js`) uses
+`@react-google-maps/api`, which needs a Google Maps JavaScript API key at
+build/run time via `REACT_APP_GOOGLE_MAPS_API_KEY`.
+
+To get your own key:
+
+1. Head to the [Google Cloud Console](https://console.cloud.google.com/),
+   create a new project (or pick an existing one).
+2. Enable the **Maps JavaScript API** for that project.
+3. Go to **APIs & Services → Credentials**, and create a new API key (or
+   reuse one you already have with that API enabled).
+4. Put it in `frontend/.env`:
+
+   ```
+   REACT_APP_GOOGLE_MAPS_API_KEY=your-key-here
+   ```
+
+For more detail, see Google's
+[Maps JavaScript API getting-started guide](https://developers.google.com/maps/documentation/javascript/get-api-key).
+
+(This app doesn't currently use Advanced Markers / cloud-based map styling,
+so no separate Map ID is needed — just the API key.)
+
+## 5. Running it
 
 Start the backend first (it owns the ROS/Mongo connections and serves the
 REST API on port 5000):
 
 ```bash
-cd src/webserver/backend
+cd backend
 ROSBRIDGE_URL=ws://localhost:9090 npm start
 ```
-
-`ROSBRIDGE_URL` is optional — it defaults to `ws://localhost:9090`. You can
-also change it at runtime from the dashboard itself (see "ROS connection"
-below) without restarting the backend.
 
 Then, in a second terminal, start the frontend dev server:
 
 ```bash
-cd src/webserver/frontend
+cd frontend
 npm start
 ```
 
@@ -62,10 +114,7 @@ This opens `http://localhost:3000`. In development, CRA's proxy (see the
 backend at `localhost:5000`, so you don't need to configure CORS or hosts
 by hand.
 
-To run against a real boat/robot, point `ROSBRIDGE_URL` (or the runtime
-connect field) at the boat's rosbridge address instead of localhost.
-
-## 4. What's on the dashboard
+## 6. What's on the dashboard
 
 **Header**
 - Connection status dot + current rosbridge URL.
@@ -111,7 +160,7 @@ connect field) at the boat's rosbridge address instead of localhost.
 - Add, delete, and drag-to-reorder waypoints; add/delete buoys. Both are
   persisted in MongoDB via the backend, independent of ROS connectivity.
 
-## 5. Building for production
+## 7. Building for production
 
 ```bash
 npm run build
@@ -121,13 +170,14 @@ Serve the resulting `build/` folder from the backend's Express app (or any
 static host) with the backend's `/api` routes reachable from the same
 origin, since there's no CRA proxy outside of `npm start`.
 
-## 6. Troubleshooting
+## 8. Troubleshooting
 
 - **Map is blank / console shows a Google Maps auth error** — check
-  `REACT_APP_GOOGLE_MAPS_API_KEY` in `.env` and that the key has the Maps
-  JavaScript API enabled.
+  `REACT_APP_GOOGLE_MAPS_API_KEY` in `frontend/.env` and that the key has
+  the Maps JavaScript API enabled (see "Google Maps setup" above).
 - **Status dot stays red** — the backend isn't connected to rosbridge.
-  Confirm rosbridge is running at the URL shown next to the status dot, or
-  use the header's connect field to point at the right one.
+  Confirm rosbridge is running at the URL shown next to the status dot (see
+  "Connecting to ROS 2" above), or use the header's connect field to point
+  at the right one.
 - **Waypoints/buoys don't save** — the backend can't reach MongoDB; check
   it's running locally on the default port.
