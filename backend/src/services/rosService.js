@@ -133,13 +133,13 @@ const initTopics = () => {
     }, (message) => parseTopicMessage(message, 'algoSail'));
 
     subscribe({
-        name: '/sailbot/actual_rudder_angle',
+        name: '/actual_rudder_angle',
         messageType: 'std_msgs/msg/Int32',
         throttle_rate: 1000
-    }, (message) => parseTopicMessage(message, 'actualRudderAngle', (value) => value - 25));
+    }, (message) => parseTopicMessage(message, 'actualRudderAngle'));
 
     subscribe({
-        name: '/sailbot/actual_sail_angle',
+        name: '/actual_mainsail_angle',
         messageType: 'std_msgs/msg/Int32',
         throttle_rate: 1000
     }, (message) => parseTopicMessage(message, 'actualSailAngle'));
@@ -175,33 +175,28 @@ const initTopics = () => {
     }, (message) => parseTopicMessage(message, 'eventMode'));
 
     subscribe({
-        name: '/sailbot/rudder_angle',
+        name: '/rudder_angle',
         messageType: 'std_msgs/msg/Int32',
         throttle_rate: 1000
     }, (message) => parseTopicMessage(message, 'rudderAngle'));
 
     subscribe({
-        name: '/sailbot/sail',
+        name: '/mainsail_angle',
         messageType: 'std_msgs/msg/Int32',
         throttle_rate: 1000
     }, (message) => parseTopicMessage(message, 'sailAngle'));
 
     subscribe({
-        name: '/sailbot/dropped_packets',
+        name: '/dropped_packets',
         messageType: 'std_msgs/msg/Int32',
         throttle_rate: 1000
     }, (message) => parseTopicMessage(message, 'droppedPackets'));
 
-    subscribe({
-        name: '/sailbot/main_algo_debug',
-        messageType: 'sailboat_interface/msg/AlgoDebug',
-        throttle_rate: 1000
-    }, parseAlgoDebug);
 
     waypointService = new ROSLIB.Service({
         ros,
-        name: '/sailbot/mutate_waypoint_queue',
-        serviceType: 'sailboat_interface/srv/Waypoint'
+        name: '/mutate_waypoint_queue',
+        serviceType: 'interface/srv/Waypoint'
     });
 
     setModeService = new ROSLIB.Service({
@@ -212,13 +207,13 @@ const initTopics = () => {
 
     webserverRudderTopic = new ROSLIB.Topic({
         ros,
-        name: '/sailbot/webserver_rudder',
+        name: '/rudder_angle',
         messageType: 'std_msgs/msg/Int32'
     });
 
     webserverSailTopic = new ROSLIB.Topic({
         ros,
-        name: '/sailbot/webserver_sail',
+        name: '/mainsail_angle',
         messageType: 'std_msgs/msg/Int32'
     });
 

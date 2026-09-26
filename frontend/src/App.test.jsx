@@ -3,5 +3,5 @@ import App from './App';
 
 test('renders dashboard header', () => {
   render(<App />);
-  expect(screen.getByText(/sailbot dashboard/i)).toBeInTheDocument();
+  expect(screen.getByText(/webstack dashboard/i)).toBeInTheDocument();
 });

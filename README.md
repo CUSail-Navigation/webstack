@@ -1,4 +1,4 @@
-# ⛵ Sailbot Webstack
+# ⛵ Webstack
 
 A full-stack ground-control web application for an autonomous sailboat — bridging a live ROS 2 stack to a browser so a human operator can watch telemetry, drop waypoints, and mark buoys in real time.
 
@@ -43,9 +43,9 @@ An autonomous sailboat's ROS 2 stack — GPS, IMU, sail/rudder servos, wind sens
 
 ## What it does
 
-- **Bridges ROS to HTTP.** A persistent `roslibjs` connection subscribes to the boat's live topics (`/gps`, `/imu`, `/sailbot/wind`, `/sailbot/control_mode`, `/sailbot/algo_rudder`, `/sailbot/algo_sail`, `/sailbot/actual_rudder_angle`, `/sailbot/actual_sail_angle`, `/sailbot/dropped_packets`, `/sailbot/main_algo_debug`) and folds every update into one "current boat state" document.
+- **Bridges ROS to HTTP.** A persistent `roslibjs` connection subscribes to the boat's live actuator topics (`/actual_rudder_angle`, `/actual_mainsail_angle`, `/dropped_packets`) and folds every update into one "current boat state" document. Additional telemetry subscriptions depend on which nodes the connected ROS stack provides; see `backend/src/services/rosService.js` for the configured topics.
 - **Persists boat state.** Instead of the frontend talking to ROS directly, it polls a REST API backed by MongoDB — so the latest GPS position, heading, rudder/sail angles (target vs. actual vs. radio vs. autopilot), tacking state, and dropped-packet count are always one `GET /api/boat` away.
-- **Manages a waypoint queue.** Waypoints are validated (valid lat/lng), persisted, ordered, reorderable, and pushed to the robot via a ROS service call (`/sailbot/mutate_waypoint_queue`) — if the robot is unreachable, the waypoint still saves to the DB so the mission queue isn't lost.
+- **Manages a waypoint queue.** Waypoints are validated (valid lat/lng), persisted, ordered, reorderable, and pushed to the robot via a ROS service call (`/mutate_waypoint_queue`) — if the robot is unreachable, the waypoint still saves to the DB so the mission queue isn't lost.
 - **Manages buoys.** Simple CRUD for marking buoy positions on the map (e.g. for course marking or obstacle avoidance).
 - **Exposes bridge health.** `GET /api/ros/status` reports whether the backend currently has a live rosbridge connection.
 
@@ -56,10 +56,10 @@ flowchart LR
     subgraph Boat["Sailboat (ROS 2)"]
         GPS[/gps/]
         IMU[/imu/]
-        WIND[/sailbot/wind/]
+        WIND["Wind (if available)"]
         SERVOS[Rudder / Sail<br/>topics]
-        ALGO[/sailbot/main_algo_debug/]
-        WPSVC[["/sailbot/mutate_waypoint_queue<br/>(service)"]]
+        ALGO["Autopilot telemetry (if available)"]
+        WPSVC[["/mutate_waypoint_queue<br/>(service)"]]
     end
 
     RB[[rosbridge<br/>WebSocket :9090]]
@@ -100,7 +100,7 @@ Boat telemetry flows one way — ROS → backend → DB → frontend (poll) — 
 ## Repository Layout
 
 ```
-sailbot-webstack/
+webstack/
 ├── backend/
 │   ├── src/
 │   │   ├── server.js              # entrypoint: connects DB + ROS, starts Express
@@ -139,7 +139,7 @@ Start your MongoDB server at `127.0.0.1:27017` before starting the backend.
 cd backend
 npm install
 npm start   # or: node src/server.js
-# → http://localhost:5000
+# → http://localhost:5001
 ```
 
 ### Frontend
@@ -154,7 +154,7 @@ npm start
 # → http://localhost:3000
 ```
 
-Open that URL in your browser. Vite forwards `/api` requests to port 5000;
+Open that URL in your browser. Vite forwards `/api` requests to port 5001;
 both ports must be available. From `frontend/`, use `npm test` for a single
 test run, `npm run test:watch` for watch mode, and `npm run build` to produce
 `build/`.

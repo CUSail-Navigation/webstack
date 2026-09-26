@@ -8,7 +8,7 @@ export async function getBoat() {
 }
 
 // POST /api/boat/control { rudder?, sail? } -> publishes a manual override
-// to /sailbot/webserver_rudder / _sail and records it as the target angle.
+// to /rudder_angle and /mainsail_angle and records the target angles.
 export async function sendManualControl({ rudder, sail }) {
   const { data } = await client.post('/boat/control', { rudder, sail });
   return data;

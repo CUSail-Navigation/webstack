@@ -14,7 +14,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Sailbot Dashboard</h1>
+        <h1>Webstack Dashboard</h1>
         <StatusBar />
       </header>
       <main className="app-layout">
