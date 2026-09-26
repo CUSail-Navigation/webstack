@@ -8,7 +8,7 @@ boat over `rosbridge`.
 
 ## 1. Prerequisites
 
-- Node.js (v18+) and npm
+- Node.js 22.22.2+, 24.15.0+, or 26+ and npm
 - MongoDB running locally at `mongodb://127.0.0.1:27017` (the backend
   connects to a `sailbot` database there — see `../backend/src/config/db.js`)
 - A ROS 2 stack with `rosbridge_server` running, reachable from the backend
@@ -30,7 +30,7 @@ npm install
 Create `frontend/.env` with your Google Maps key:
 
 ```
-REACT_APP_GOOGLE_MAPS_API_KEY=your-key-here
+VITE_GOOGLE_MAPS_API_KEY=your-key-here
 ```
 
 Follow the format in `frontend/.env.example`. `.env` is gitignored, so this
@@ -69,9 +69,9 @@ frontend itself never talks to ROS directly.
 
 ## 4. Google Maps setup
 
-The map component (`src/components/BoatMap.js`) uses
+The map component (`src/components/BoatMap.jsx`) uses
 `@react-google-maps/api`, which needs a Google Maps JavaScript API key at
-build/run time via `REACT_APP_GOOGLE_MAPS_API_KEY`.
+development-server startup or production-build time via `VITE_GOOGLE_MAPS_API_KEY`.
 
 To get your own key:
 
@@ -83,7 +83,7 @@ To get your own key:
 4. Put it in `frontend/.env`:
 
    ```
-   REACT_APP_GOOGLE_MAPS_API_KEY=your-key-here
+   VITE_GOOGLE_MAPS_API_KEY=your-key-here
    ```
 
 For more detail, see Google's
@@ -93,6 +93,9 @@ For more detail, see Google's
 so no separate Map ID is needed — just the API key.)
 
 ## 5. Running it
+
+Start each terminal from the repository root. Ports 5000 (backend) and
+3000 (frontend) must be available. Restart Vite after editing `frontend/.env`.
 
 Start the backend first (it owns the ROS/Mongo connections and serves the
 REST API on port 5000):
@@ -109,8 +112,8 @@ cd frontend
 npm start
 ```
 
-This opens `http://localhost:3000`. In development, CRA's proxy (see the
-`proxy` field in `package.json`) forwards any `/api/*` request to the
+Open `http://localhost:3000`. In development, Vite's proxy (see
+`server.proxy` in `vite.config.mjs`) forwards any `/api/*` request to the
 backend at `localhost:5000`, so you don't need to configure CORS or hosts
 by hand.
 
@@ -162,18 +165,20 @@ by hand.
 
 ## 7. Building for production
 
+Run from `frontend/`:
+
 ```bash
 npm run build
 ```
 
 Serve the resulting `build/` folder from the backend's Express app (or any
 static host) with the backend's `/api` routes reachable from the same
-origin, since there's no CRA proxy outside of `npm start`.
+origin, since production hosting must configure its own API routing.
 
 ## 8. Troubleshooting
 
 - **Map is blank / console shows a Google Maps auth error** — check
-  `REACT_APP_GOOGLE_MAPS_API_KEY` in `frontend/.env` and that the key has
+  `VITE_GOOGLE_MAPS_API_KEY` in `frontend/.env` and that the key has
   the Maps JavaScript API enabled (see "Google Maps setup" above).
 - **Status dot stays red** — the backend isn't connected to rosbridge.
   Confirm rosbridge is running at the URL shown next to the status dot (see
@@ -181,3 +186,8 @@ origin, since there's no CRA proxy outside of `npm start`.
   at the right one.
 - **Waypoints/buoys don't save** — the backend can't reach MongoDB; check
   it's running locally on the default port.
+
+## 9. Tests
+
+From `frontend/`, run `npm test` for a single Vitest run or
+`npm run test:watch` for watch mode.

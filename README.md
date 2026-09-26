@@ -95,7 +95,7 @@ Boat telemetry flows one way — ROS → backend → DB → frontend (poll) — 
 | Backend | [Express](https://expressjs.com) on Node.js | REST API, CORS-enabled for the frontend |
 | Database | [MongoDB](https://www.mongodb.com) via [Mongoose](https://mongoosejs.com) | Persists boat state, waypoints, buoys |
 | ROS bridge | [roslibjs](https://github.com/RobotWebTools/roslibjs) + [rosbridge_suite](http://wiki.ros.org/rosbridge_suite) | WebSocket client subscribing to boat topics and calling the waypoint-queue service |
-| Frontend | [React](https://react.dev) (Create React App) | Map, dials, and waypoint/buoy controls for the operator *(in progress)* |
+| Frontend | [React](https://react.dev) + Vite | Map, dials, and waypoint/buoy controls for the operator *(in progress)* |
 
 ## Repository Layout
 
@@ -118,18 +118,22 @@ sailbot-webstack/
 │   │   └── services/
 │   │       └── rosService.js      # roslibjs subscriptions + waypoint service client
 │   └── package.json
-└── frontend/                      # React app (Create React App scaffold)
+└── frontend/                      # React dashboard (Vite)
 ```
 
 ## Quick Start
 
 ### Prerequisites
 
-- Node.js 18+
-- A running MongoDB instance on `mongodb://127.0.0.1:27017`
+- Node.js 22.22.2+, 24.15.0+, or 26+ (required by the frontend tooling)
+- [MongoDB Community Server](https://www.mongodb.com/docs/manual/installation/) installed locally
 - A `rosbridge_suite` WebSocket server reachable at `ws://localhost:9090` (or set `ROSBRIDGE_URL`)
 
+Run each section in a separate terminal, starting from the repository root.
+
 ### Backend
+
+Start your MongoDB server at `127.0.0.1:27017` before starting the backend.
 
 ```bash
 cd backend
@@ -140,12 +144,20 @@ npm start   # or: node src/server.js
 
 ### Frontend
 
+For the map, create `frontend/.env` with `VITE_GOOGLE_MAPS_API_KEY=your-key-here`
+(see `frontend/.env.example`). Restart the frontend after changing this file.
+
 ```bash
 cd frontend
 npm install
 npm start
 # → http://localhost:3000
 ```
+
+Open that URL in your browser. Vite forwards `/api` requests to port 5000;
+both ports must be available. From `frontend/`, use `npm test` for a single
+test run, `npm run test:watch` for watch mode, and `npm run build` to produce
+`build/`.
 
 ## API Reference
 
@@ -175,7 +187,6 @@ npm start
 
 - Boat state is a single upserted document, not a history — there's no built-in telemetry log/replay yet.
 - Waypoint delivery to the robot is best-effort: if `rosbridge` is down, the waypoint is saved to Mongo but not pushed, and there's no automatic re-sync once the connection returns.
-- The frontend is still an unmodified Create React App scaffold — the map, dial, and waypoint UI that consumes this API hasn't been built out yet.
 - No authentication on the API; assumes a trusted local/LAN operator setup.
 
 ## Roadmap
