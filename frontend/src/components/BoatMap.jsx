@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { GoogleMap, Marker, Polyline, InfoWindow, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, Marker, PolylineF, InfoWindow, useJsApiLoader } from '@react-google-maps/api';
 import usePolling from '../hooks/usePolling';
 import { getBoat } from '../api/boat';
 import { getWaypoints, addWaypoint, deleteWaypoint } from '../api/waypoints';
@@ -159,12 +159,13 @@ export default function BoatMap() {
               </Marker>
             )}
 
+            {/* Effect-based polylines clean up each instance during StrictMode remounts. */}
             {trailPositions.length > 1 && (
-              <Polyline path={trailPositions} options={{ strokeColor: '#d64545', strokeWeight: 2 }} />
+              <PolylineF path={trailPositions} options={{ strokeColor: '#d64545', strokeWeight: 2 }} />
             )}
 
             {waypointPath.length > 1 && (
-              <Polyline path={waypointPath} options={{ strokeColor: '#911084', strokeWeight: 2 }} />
+              <PolylineF path={waypointPath} options={{ strokeColor: '#911084', strokeWeight: 2 }} />
             )}
 
             {(waypoints ?? []).map((w) => (
