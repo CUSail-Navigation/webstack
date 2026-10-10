@@ -63,7 +63,7 @@ function buoyIcon() {
 export default function BoatMap() {
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'sailbot-google-map',
-    googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
   });
 
   const { data: boat } = usePolling(getBoat, 1000);
@@ -131,7 +131,7 @@ export default function BoatMap() {
 
       <div className="map-container">
         {loadError && (
-          <div className="map-fallback">Google Maps failed to load. Check REACT_APP_GOOGLE_MAPS_API_KEY.</div>
+          <div className="map-fallback">Google Maps failed to load. Check VITE_GOOGLE_MAPS_API_KEY.</div>
         )}
         {!loadError && !isLoaded && (
           <div className="map-fallback">Loading map…</div>
