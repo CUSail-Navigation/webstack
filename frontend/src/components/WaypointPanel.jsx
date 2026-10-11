@@ -1,38 +1,37 @@
 import { useRef, useState } from 'react';
-import usePolling from '../hooks/usePolling';
-import { getWaypoints, addWaypoint, deleteWaypoint, reorderWaypoints, clearWaypoints } from '../api/waypoints';
+import useWaypoints from '../hooks/useWaypoints';
+import { addWaypoint, deleteWaypoint, reorderWaypoints, clearWaypoints } from '../api/waypoints';
 
 export default function WaypointPanel() {
-  const { data: waypoints, refresh } = usePolling(getWaypoints, 2000);
+  const { waypoints, mutate, disabled, label, error } = useWaypoints();
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
   const dragIndex = useRef(null);
+  const dragQueue = useRef(null);
 
   const list = waypoints ?? [];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (lat === '' || lng === '') return;
-    await addWaypoint(parseFloat(lat), parseFloat(lng), list.length);
-    setLat('');
-    setLng('');
-    refresh();
+    if (await mutate(() => addWaypoint(parseFloat(lat), parseFloat(lng)))) {
+      setLat('');
+      setLng('');
+    }
   };
 
   const handleDelete = async (id) => {
-    await deleteWaypoint(id);
-    refresh();
+    await mutate(() => deleteWaypoint(id));
   };
 
   const handleClear = async () => {
-    await clearWaypoints();
-    refresh();
+    await mutate(clearWaypoints);
   };
 
-  // Drag-and-drop reorder: reorder the ids client-side for instant feedback,
-  // then persist the new order with a single PUT /waypoints/reorder call.
+  // Cancel the drop if polling changed the queue during the drag.
   const handleDragStart = (index) => {
     dragIndex.current = index;
+    dragQueue.current = list.map((w) => w._id);
   };
 
   const handleDragOver = (e) => {
@@ -41,24 +40,28 @@ export default function WaypointPanel() {
 
   const handleDrop = async (index) => {
     const from = dragIndex.current;
+    const ids = dragQueue.current;
     dragIndex.current = null;
-    if (from === null || from === index) return;
+    dragQueue.current = null;
+    if (disabled || from === null || from === index || !ids ||
+        ids.length !== list.length || ids.some((id, i) => id !== list[i]._id)) return;
 
     const reordered = [...list];
     const [moved] = reordered.splice(from, 1);
     reordered.splice(index, 0, moved);
 
-    await reorderWaypoints(reordered.map((w) => w._id));
-    refresh();
+    await mutate(() => reorderWaypoints(reordered.map((w) => w._id)));
   };
 
   return (
     <div className="panel">
       <h2>Waypoints</h2>
+      <p role="status">{label}</p>
+      {error && <p role="alert">{error}</p>}
       <form className="add-form" onSubmit={handleSubmit}>
         <input type="number" step="any" placeholder="Latitude" value={lat} onChange={(e) => setLat(e.target.value)} required />
         <input type="number" step="any" placeholder="Longitude" value={lng} onChange={(e) => setLng(e.target.value)} required />
-        <button type="submit">Add</button>
+        <button type="submit" disabled={disabled}>Add</button>
       </form>
 
       {list.length === 0 ? (
@@ -68,7 +71,7 @@ export default function WaypointPanel() {
           {list.map((w, index) => (
             <li
               key={w._id}
-              draggable
+              draggable={!disabled}
               onDragStart={() => handleDragStart(index)}
               onDragOver={handleDragOver}
               onDrop={() => handleDrop(index)}
@@ -76,14 +79,14 @@ export default function WaypointPanel() {
             >
               <span className="drag-handle">⠿</span>
               <span className="item-coord">{w.latitude.toFixed(6)}, {w.longitude.toFixed(6)}</span>
-              <button className="delete-button" onClick={() => handleDelete(w._id)}>Delete</button>
+              <button disabled={disabled} className="delete-button" onClick={() => handleDelete(w._id)}>Delete</button>
             </li>
           ))}
         </ul>
       )}
 
       {list.length > 0 && (
-        <button className="clear-button" onClick={handleClear}>Clear all</button>
+        <button disabled={disabled} className="clear-button" onClick={handleClear}>Clear all</button>
       )}
     </div>
   );

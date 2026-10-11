@@ -5,10 +5,14 @@ export async function getWaypoints() {
   return data;
 }
 
-// order is optional — the backend defaults it to 0, but we pass the current
-// list length so new waypoints land at the end of the queue.
-export async function addWaypoint(latitude, longitude, order) {
-  const { data } = await client.post('/waypoints', { latitude, longitude, order });
+export async function getWaypointStatus() {
+  const { data } = await client.get('/waypoints/status');
+  return data;
+}
+
+// The backend appends to the live boat queue; the browser never assigns order.
+export async function addWaypoint(latitude, longitude) {
+  const { data } = await client.post('/waypoints', { latitude, longitude });
   return data;
 }
 

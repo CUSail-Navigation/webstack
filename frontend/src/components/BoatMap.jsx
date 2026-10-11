@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GoogleMap, Marker, PolylineF, InfoWindow, useJsApiLoader } from '@react-google-maps/api';
 import usePolling from '../hooks/usePolling';
+import useWaypoints from '../hooks/useWaypoints';
 import { getBoat } from '../api/boat';
-import { getWaypoints, addWaypoint, deleteWaypoint } from '../api/waypoints';
+import { addWaypoint, deleteWaypoint } from '../api/waypoints';
 import { getBuoys, deleteBuoy } from '../api/buoys';
 
 // Lake Quinsigamond, MA — same default center the old dashboard used.
@@ -67,7 +68,7 @@ export default function BoatMap() {
   });
 
   const { data: boat } = usePolling(getBoat, 1000);
-  const { data: waypoints, refresh: refreshWaypoints } = usePolling(getWaypoints, 2000);
+  const { waypoints, mutate, disabled: waypointDisabled, error: waypointError } = useWaypoints();
   const { data: buoys, refresh: refreshBuoys } = usePolling(getBuoys, 2000);
 
   const [trail, setTrail] = useState([]);
@@ -92,14 +93,11 @@ export default function BoatMap() {
   const waypointPath = useMemo(() => (waypoints ?? []).map((w) => ({ lat: w.latitude, lng: w.longitude })), [waypoints]);
 
   const handleAddWaypoint = useCallback(async (lat, lng) => {
-    await addWaypoint(lat, lng, (waypoints ?? []).length);
-    refreshWaypoints();
-  }, [waypoints, refreshWaypoints]);
+    await mutate(() => addWaypoint(lat, lng));
+  }, [mutate]);
 
   const handleDeleteWaypoint = async (id) => {
-    await deleteWaypoint(id);
-    setOpenInfo(null);
-    refreshWaypoints();
+    if (await mutate(() => deleteWaypoint(id))) setOpenInfo(null);
   };
 
   const handleDeleteBuoy = async (id) => {
@@ -129,6 +127,7 @@ export default function BoatMap() {
         )}
       </div>
 
+      {waypointError && <p role="alert">{waypointError}</p>}
       <div className="map-container">
         {loadError && (
           <div className="map-fallback">Google Maps failed to load. Check VITE_GOOGLE_MAPS_API_KEY.</div>
@@ -180,7 +179,7 @@ export default function BoatMap() {
                     <span>
                       Waypoint {w.order}<br />
                       {w.latitude.toFixed(6)}, {w.longitude.toFixed(6)}<br />
-                      <button onClick={() => handleDeleteWaypoint(w._id)}>Delete</button>
+                      <button disabled={waypointDisabled} onClick={() => handleDeleteWaypoint(w._id)}>Delete</button>
                     </span>
                   </InfoWindow>
                 )}
