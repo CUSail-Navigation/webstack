@@ -33,7 +33,8 @@ function boatIcon(heading = 0) {
     fillOpacity: 1,
     strokeColor: '#ffffff',
     strokeWeight: 1.5,
-    rotation: heading,
+    // Boat yaw is counterclockwise from east; Maps rotates clockwise from north.
+    rotation: (90 - heading + 360) % 360,
     scale: 1.3,
     anchor: new window.google.maps.Point(0, 0),
   };
@@ -142,7 +143,7 @@ export default function BoatMap() {
             zoom={DEFAULT_ZOOM}
             onDblClick={onMapDblClick}
             onMouseMove={onMapMouseMove}
-            options={{ styles: MAP_STYLE, streetViewControl: false, fullscreenControl: false, mapTypeControl: false }}
+            options={{ styles: MAP_STYLE, disableDoubleClickZoom: true, streetViewControl: false, fullscreenControl: false, mapTypeControl: false }}
           >
             {boatPosition && (
               <Marker
