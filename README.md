@@ -45,7 +45,7 @@ An autonomous sailboat's ROS 2 stack — GPS, IMU, sail/rudder servos, wind sens
 
 - **Bridges ROS to HTTP.** A persistent `roslibjs` connection subscribes to the boat's live actuator topics (`/actual_rudder_angle`, `/actual_mainsail_angle`, `/dropped_packets`) and folds every update into one "current boat state" document. Additional telemetry subscriptions depend on which nodes the connected ROS stack provides; see `backend/src/services/rosService.js` for the configured topics.
 - **Persists boat state.** Instead of the frontend talking to ROS directly, it polls a REST API backed by MongoDB — so the latest GPS position, heading, rudder/sail angles (target vs. actual vs. radio vs. autopilot), tacking state, and dropped-packet count are always one `GET /api/boat` away.
-- **Manages a waypoint queue.** Waypoints are validated (valid lat/lng), persisted, ordered, reorderable, and pushed to the robot via a ROS service call (`/mutate_waypoint_queue`) — if the robot is unreachable, the waypoint still saves to the DB so the mission queue isn't lost.
+- **Manages a waypoint queue.** The boat owns the active queue. The backend reads it every second into MongoDB for dashboard polling and offline viewing. Online edits use `/mutate_waypoint_queue`; a version check rejects edits if the boat advanced during the request.
 - **Manages buoys.** Simple CRUD for marking buoy positions on the map (e.g. for course marking or obstacle avoidance).
 - **Exposes bridge health.** `GET /api/ros/status` reports whether the backend currently has a live rosbridge connection.
 
@@ -86,7 +86,7 @@ flowchart LR
     class ROSSVC,API,DB node;
 ```
 
-Boat telemetry flows one way — ROS → backend → DB → frontend (poll) — so the frontend never needs a direct ROS connection. Waypoint creation flows the other way too: frontend → REST → DB (always) → ROS service call (best-effort, boat may be offline).
+Boat telemetry flows one way — ROS → backend → DB → frontend (poll) — so the frontend never needs a direct ROS connection. Waypoint edits flow frontend → REST → ROS → DB after boat acknowledgement. Background reads flow ROS → DB → frontend. MongoDB stores the last confirmed queue and is never pushed back to restore the boat.
 
 ## Tech Stack
 
@@ -133,7 +133,11 @@ Run each section in a separate terminal, starting from the repository root.
 
 ### Backend
 
-Start your MongoDB server at `127.0.0.1:27017` before starting the backend.
+Start your MongoDB server at `127.0.0.1:27017`. If on macOS and MongoDB was installed with Homebrew, you can do so with:
+
+```bash
+brew services start mongodb-community
+```
 
 ```bash
 cd backend
@@ -170,8 +174,9 @@ test run, `npm run test:watch` for watch mode, and `npm run build` to produce
 | `POST` | `/api/buoy/add` | Add a buoy at `{ latitude, longitude }` |
 | `DELETE` | `/api/buoy/reset` | Clear all buoys |
 | `DELETE` | `/api/buoy/:id` | Remove one buoy |
-| `GET` | `/api/waypoints` | List waypoints, ordered |
-| `POST` | `/api/waypoints` | Add a waypoint; also pushed to the robot over ROS (best-effort) |
+| `GET` | `/api/waypoints` | Last confirmed waypoints from MongoDB, ordered |
+| `POST` | `/api/waypoints` | Append to the live boat queue; HTTP 201 means the boat accepted it |
+| `GET` | `/api/waypoints/status` | `{connected, stale, confirmedAt, error}` cache status |
 | `PUT` | `/api/waypoints/reorder` | Reorder waypoints given an array of IDs |
 | `DELETE` | `/api/waypoints/clear` | Clear the whole mission |
 | `DELETE` | `/api/waypoints/:id` | Remove one waypoint |
@@ -181,18 +186,18 @@ test run, `npm run test:watch` for watch mode, and `npm run build` to produce
 
 **Boat** is a single "current state" document, continuously upserted from ROS — not a time-series log. It tracks rudder and sail angle from four independent sources (web UI target, servo feedback, handheld radio, and autopilot), plus heading, wind angle, control mode, tacking state, distance to destination, and dropped-packet count.
 
-**Waypoint** and **Buoy** are simple geo-tagged documents; waypoints additionally carry an `order` field for drag-and-drop mission sequencing.
+**WaypointQueue** stores the boat's last confirmed ordered queue and `confirmedAt` in MongoDB, refreshed every second.
 
 ## Limitations
 
 - Boat state is a single upserted document, not a history — there's no built-in telemetry log/replay yet.
-- Waypoint delivery to the robot is best-effort: if `rosbridge` is down, the waypoint is saved to Mongo but not pushed, and there's no automatic re-sync once the connection returns.
+- Waypoint edits require a live boat connection. A stale saved queue is only for offline viewing.
+- Queue operations assume one backend process; multiple backend writers are unsupported.
 - No authentication on the API; assumes a trusted local/LAN operator setup.
 
 ## Roadmap
 
 - Build out the React frontend: live map, instrument dials, waypoint drag-and-drop, buoy markers
-- Auto-resync the waypoint queue to the robot when the ROS connection is re-established
 - Telemetry history/logging for post-run analysis
 - Basic auth for the operator API
 

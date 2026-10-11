@@ -274,21 +274,31 @@ const connectROS = (rosbridgeUrl = ROSBRIDGE_URL) => {
     log('Connecting to ROS at', rosbridgeUrl);
     currentUrl = rosbridgeUrl;
     ros = new ROSLIB.Ros({ url: rosbridgeUrl });
-
+    const connection = ros;
+    let initialized = false;
     ros.on('connection', () => {
+        if (ros !== connection) return;
         isConnected = true;
         log('Connected to ROS bridge');
-        initTopics();
+        if (!initialized) {
+            initTopics();
+            initialized = true;
+        }
     });
 
     ros.on('error', (error) => {
+        if (ros !== connection) return;
         isConnected = false;
         console.error('[ROS SERVICE] rosbridge error:', error);
     });
 
     ros.on('close', () => {
+        if (ros !== connection) return;
         isConnected = false;
         log('ROS bridge connection closed');
+        setTimeout(() => {
+            if (ros === connection && !isConnected) connection.connect(rosbridgeUrl);
+        }, 1000).unref();
     });
 
     return ros;
@@ -306,32 +316,43 @@ const reconnectROS = (rosbridgeUrl) => {
     return connectROS(rosbridgeUrl);
 };
 
-const sendWaypointToRobot = async (waypointData) => {
+const callWaypointService = (command, update = {}, timeoutMs = 2000) => {
     if (!waypointService || !isConnected) {
-        throw new Error('ROS is not connected or waypoint service is unavailable');
+        return Promise.reject(Object.assign(new Error('ROS is not connected or waypoint service is unavailable'), { status: 503 }));
     }
-
-    if (typeof waypointData.latitude !== 'number' || typeof waypointData.longitude !== 'number') {
-        throw new Error('Waypoint must contain numeric latitude and longitude');
-    }
-
-    const request = new ROSLIB.ServiceRequest({
-        command: 'set',
-        argument: `${waypointData.latitude},${waypointData.longitude}`
-    });
-
+    const connection = ros;
+    const service = waypointService;
     return new Promise((resolve, reject) => {
-        waypointService.callService(request, (result) => {
-            if (result && result.success) {
-                log('Waypoint service accepted', waypointData);
-                resolve(result);
-            } else {
-                const message = result && result.message ? result.message : 'unknown error';
-                reject(new Error(`Waypoint service failed: ${message}`));
-            }
-        }, (error) => {
-            reject(error || new Error('Waypoint service call error'));
-        });
+        let timer;
+        let callId;
+        let settled = false;
+        const finish = (error, result) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            connection.off('close', disconnected);
+            connection.off('error', disconnected);
+            if (callId) connection.removeAllListeners(callId);
+            if (error) reject(error instanceof Error ? error : new Error(String(error)));
+            else resolve(result);
+        };
+        const disconnected = () => finish(Object.assign(new Error('ROS disconnected; the edit may have reached the boat. Check the refreshed queue before retrying.'), { status: 503 }));
+        connection.once('close', disconnected);
+        connection.once('error', disconnected);
+        timer = setTimeout(() => finish(Object.assign(new Error('Waypoint service timed out; the edit may have reached the boat. Check the refreshed queue before retrying.'), { status: 504 })), timeoutMs);
+        // roslib 1.x has no cancellation API; remove its per-call listener on timeout.
+        callId = `call_service:${service.name}:${connection.idCounter + 1}`;
+        try {
+            service.callService(new ROSLIB.ServiceRequest({
+                command, expected_version: update.expected_version || '',
+                waypoints: update.waypoints || []
+            }), (result) => {
+                const message = result?.error || 'Waypoint service failed';
+                finish(result?.success ? null : Object.assign(new Error(message), {
+                    status: message === 'Queue changed; refresh before editing' ? 409 : 400
+                }), result);
+            }, (error) => finish(Object.assign(new Error(String(error || 'Waypoint service call error')), { status: 503 })));
+        } catch (error) { finish(error); }
     });
 };
 
@@ -447,7 +468,7 @@ const getStatus = () => ({ connected: isConnected, url: currentUrl });
 module.exports = {
     connectROS,
     reconnectROS,
-    sendWaypointToRobot,
+    callWaypointService,
     sendManualControl,
     setControlMode,
     setNoGoZone,
