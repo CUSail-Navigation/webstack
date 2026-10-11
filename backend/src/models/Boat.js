@@ -18,8 +18,13 @@ const BoatSchema = new mongoose.Schema({
     radioSail: { type: Number, default: 0 },         // From the handheld Remote
     algoSail: { type: Number, default: 0 },          // From the Autopilot code
 
+    // --- JIB ---
+    actualJibAngle: { type: Number, default: null }, // /received_jib_angle
+    actualJibSideFlag: { type: Number, enum: [0, 1], default: null }, // 0=port, 1=starboard
+
     // --- ENVIRONMENTAL & STATUS ---
     windAngle: { type: Number, default: 0 },
+    windSpeed: { type: Number, default: null },
     controlMode: { type: String, default: 'manual' },
     eventMode: { type: String, default: null },      // /sailbot/current_mode
     rudderAngle: { type: Number, default: 0 },        // /rudder_angle (distinct from actualRudderAngle)

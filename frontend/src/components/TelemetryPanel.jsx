@@ -27,10 +27,12 @@ export default function TelemetryPanel() {
       <table className="stats-table">
         <tbody>
           <tr><td>Wind angle</td><td>{fmt(boat?.windAngle)}°</td></tr>
+          <tr><td>Wind speed</td><td>{fmt(boat?.windSpeed)} m/s</td></tr>
           <tr><td>Control mode</td><td>{boat?.controlMode ?? '—'}</td></tr>
           <tr><td>Event mode</td><td>{boat?.eventMode ?? '—'}</td></tr>
           <tr><td>Tacking</td><td>{boat?.tacking ? 'Yes' : 'No'}</td></tr>
           <tr><td>Distance to dest</td><td>{fmt(boat?.distToDest)} m</td></tr>
+          <tr><td>Reported jib</td><td>{fmt(boat?.actualJibAngle)}° / {side(boat?.actualJibSideFlag)}</td></tr>
           <tr><td>Target rudder / sail</td><td>{fmt(boat?.targetRudderAngle)}° / {fmt(boat?.targetSailAngle)}°</td></tr>
           <tr><td>Radio rudder / sail</td><td>{fmt(boat?.radioRudder)}° / {fmt(boat?.radioSail)}°</td></tr>
           <tr><td>Algo rudder / sail</td><td>{fmt(boat?.algoRudder)}° / {fmt(boat?.algoSail)}°</td></tr>
@@ -43,4 +45,8 @@ export default function TelemetryPanel() {
 
 function fmt(n) {
   return Number.isFinite(n) ? n.toFixed(1) : '—';
+}
+
+function side(flag) {
+  return flag === 0 ? 'Port' : flag === 1 ? 'Starboard' : '—';
 }

@@ -130,16 +130,28 @@ const initTopics = () => {
     }, (message) => parseTopicMessage(message, 'algoSail'));
 
     subscribe({
-        name: '/actual_rudder_angle',
+        name: '/received_rudder_angle',
         messageType: 'std_msgs/msg/Int32',
         throttle_rate: 1000
     }, (message) => parseTopicMessage(message, 'actualRudderAngle'));
 
     subscribe({
-        name: '/actual_mainsail_angle',
+        name: '/received_mainsail_angle',
         messageType: 'std_msgs/msg/Int32',
         throttle_rate: 1000
     }, (message) => parseTopicMessage(message, 'actualSailAngle'));
+
+    subscribe({
+        name: '/received_jib_angle',
+        messageType: 'std_msgs/msg/Int32',
+        throttle_rate: 1000
+    }, (message) => parseTopicMessage(message, 'actualJibAngle'));
+
+    subscribe({
+        name: '/received_jib_side_flag',
+        messageType: 'std_msgs/msg/UInt8',
+        throttle_rate: 1000
+    }, (message) => parseTopicMessage(message, 'actualJibSideFlag'));
 
     subscribe({
         name: '/sailbot/radio_rudder',
@@ -154,10 +166,16 @@ const initTopics = () => {
     }, (message) => parseTopicMessage(message, 'radioSail'));
 
     subscribe({
-        name: '/sailbot/wind',
+        name: '/wind_angle',
         messageType: 'std_msgs/msg/Int32',
         throttle_rate: 1000
     }, (message) => parseTopicMessage(message, 'windAngle'));
+
+    subscribe({
+        name: '/wind_speed',
+        messageType: 'std_msgs/msg/Float32',
+        throttle_rate: 1000
+    }, (message) => parseTopicMessage(message, 'windSpeed'));
 
     subscribe({
         name: '/sailbot/control_mode',
