@@ -7,6 +7,8 @@ let waypointService = null;
 let setModeService = null;
 let webserverRudderTopic = null;
 let webserverSailTopic = null;
+let webserverJibTopic = null;
+let webserverJibSideTopic = null;
 let controlModeTopic = null;
 let noGoZoneTopic = null;
 let neutralZoneTopic = null;
@@ -217,6 +219,18 @@ const initTopics = () => {
         messageType: 'std_msgs/msg/Int32'
     });
 
+    webserverJibTopic = new ROSLIB.Topic({
+        ros,
+        name: '/jib_angle',
+        messageType: 'std_msgs/msg/Int32'
+    });
+
+    webserverJibSideTopic = new ROSLIB.Topic({
+        ros,
+        name: '/jib_side_flag',
+        messageType: 'std_msgs/msg/UInt8'
+    });
+
     controlModeTopic = new ROSLIB.Topic({
         ros,
         name: '/sailbot/control_mode',
@@ -356,7 +370,7 @@ const callWaypointService = (command, update = {}, timeoutMs = 2000) => {
     });
 };
 
-const sendManualControl = ({ rudder, sail }) => {
+const sendManualControl = ({ rudder, sail, jib, jibSide }) => {
     if (!isConnected) {
         throw new Error('ROS is not connected');
     }
@@ -367,6 +381,14 @@ const sendManualControl = ({ rudder, sail }) => {
 
     if (typeof sail === 'number' && webserverSailTopic) {
         webserverSailTopic.publish(new ROSLIB.Message({ data: Math.round(sail) }));
+    }
+
+    if (typeof jibSide === 'number' && webserverJibSideTopic) {
+        webserverJibSideTopic.publish(new ROSLIB.Message({ data: jibSide }));
+    }
+
+    if (typeof jib === 'number' && webserverJibTopic) {
+        webserverJibTopic.publish(new ROSLIB.Message({ data: Math.round(jib) }));
     }
 };
 
