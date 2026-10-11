@@ -44,15 +44,10 @@ const parseGpsMessage = async (message) => {
 };
 
 const parseImuMessage = async (message) => {
-    let heading = null;
-
-    if (message.angular_velocity && typeof message.angular_velocity.z === 'number') {
-        heading = message.angular_velocity.z;
-    } else if (typeof message.z === 'number') {
-        heading = message.z;
-    }
-
-    if (heading === null) {
+    // The boat publishes roll/pitch/yaw in degrees as geometry_msgs/Vector3.
+    // Keep its heading convention (0=east, 90=north) in stored telemetry.
+    const heading = message?.z;
+    if (!Number.isFinite(heading)) {
         return;
     }
 
@@ -118,7 +113,7 @@ const initTopics = () => {
 
     subscribe({
         name: '/imu',
-        messageType: 'sensor_msgs/msg/Imu',
+        messageType: 'geometry_msgs/msg/Vector3',
         throttle_rate: 1000
     }, parseImuMessage);
 
