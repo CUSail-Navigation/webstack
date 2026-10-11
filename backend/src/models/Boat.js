@@ -22,8 +22,8 @@ const BoatSchema = new mongoose.Schema({
     windAngle: { type: Number, default: 0 },
     controlMode: { type: String, default: 'manual' },
     eventMode: { type: String, default: null },      // /sailbot/current_mode
-    rudderAngle: { type: Number, default: 0 },        // /sailbot/rudder_angle (distinct from actualRudderAngle)
-    sailAngle: { type: Number, default: 0 },          // /sailbot/sail (distinct from actualSailAngle)
+    rudderAngle: { type: Number, default: 0 },        // /rudder_angle (distinct from actualRudderAngle)
+    sailAngle: { type: Number, default: 0 },          // /mainsail_angle (distinct from actualSailAngle)
     tacking: { type: Boolean, default: false },
     distToDest: { type: Number, default: 0 },
     droppedPackets: { type: Number, default: 0 },

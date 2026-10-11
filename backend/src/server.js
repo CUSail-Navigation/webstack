@@ -1,7 +1,7 @@
 const app = require("./app"); // Import the logic from app.js
 const connectDB = require("./config/db"); // Fixed path
 const { connectROS } = require("./services/rosService");
-const PORT = 5000;
+const PORT = Number(process.env.PORT || 5001);
 
 // Connect to Database
 connectDB();

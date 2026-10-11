@@ -1,6 +1,6 @@
-# Sailbot Dashboard (Frontend)
+# Webstack Dashboard (Frontend)
 
-React dashboard for the sailbot: live telemetry, a Google Maps view of the
+React dashboard for the boat: live telemetry, a Google Maps view of the
 boat/waypoints/buoys, and full manual control (rudder/sail override, mode
 switching, station keeping, algorithm tuning, computer-vision tuning). It
 talks to the Express backend in `../backend`, which in turn talks to the
@@ -10,7 +10,8 @@ boat over `rosbridge`.
 
 - Node.js 22.22.2+, 24.15.0+, or 26+ and npm
 - MongoDB running locally at `mongodb://127.0.0.1:27017` (the backend
-  connects to a `sailbot` database there — see `../backend/src/config/db.js`)
+  defaults to a `webstack` database there; override with `MONGODB_URI` — see
+  `../backend/src/config/db.js`).
 - A ROS 2 stack with `rosbridge_server` running, reachable from the backend
   (default `ws://localhost:9090`) if you want live boat data instead of an
   empty dashboard — see "Connecting to ROS 2" below
@@ -44,9 +45,7 @@ bridges ROS topics/services to the REST API the frontend calls. The
 frontend itself never talks to ROS directly.
 
 1. Make sure your ROS 2 stack is running and `rosbridge_websocket` is
-   launched (this is normally already part of the sailbot's own launch
-   files — see `sailboat_launch` in the main `sailbot` repo). By default it
-   listens on `ws://localhost:9090`.
+   launched. By default it listens on `ws://localhost:9090`.
 2. Point the backend at it, either via an env var when you start it:
 
    ```bash
@@ -94,11 +93,11 @@ so no separate Map ID is needed — just the API key.)
 
 ## 5. Running it
 
-Start each terminal from the repository root. Ports 5000 (backend) and
+Start each terminal from the repository root. Ports 5001 (backend) and
 3000 (frontend) must be available. Restart Vite after editing `frontend/.env`.
 
 Start the backend first (it owns the ROS/Mongo connections and serves the
-REST API on port 5000):
+REST API on port 5001):
 
 ```bash
 cd backend
@@ -114,7 +113,7 @@ npm start
 
 Open `http://localhost:3000`. In development, Vite's proxy (see
 `server.proxy` in `vite.config.mjs`) forwards any `/api/*` request to the
-backend at `localhost:5000`, so you don't need to configure CORS or hosts
+backend at `localhost:5001`, so you don't need to configure CORS or hosts
 by hand.
 
 ## 6. What's on the dashboard

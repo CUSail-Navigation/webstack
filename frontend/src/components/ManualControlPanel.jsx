@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { sendManualControl } from '../api/boat';
 
-// Manual rudder/sail override — mirrors the old dashboard's sail-input /
-// rudder-input forms, which published straight to /sailbot/webserver_sail
-// and /sailbot/webserver_rudder.
+// Manual rudder/mainsail control through the backend, which publishes to
+// /rudder_angle and /mainsail_angle.
 export default function ManualControlPanel() {
   const [rudder, setRudder] = useState('');
   const [sail, setSail] = useState('');

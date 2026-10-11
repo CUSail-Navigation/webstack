@@ -62,7 +62,7 @@ function buoyIcon() {
 
 export default function BoatMap() {
   const { isLoaded, loadError } = useJsApiLoader({
-    id: 'sailbot-google-map',
+    id: 'webstack-google-map',
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
   });
 

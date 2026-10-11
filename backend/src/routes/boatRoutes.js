@@ -45,7 +45,7 @@ router.post('/update', async (req, res) => {
 /**
  * @route   POST /api/boat/control
  * @desc    Manual rudder/sail override from the web UI. Publishes to
- *          /sailbot/webserver_rudder and /sailbot/webserver_sail, and
+ *          /rudder_angle and /mainsail_angle, and
  *          records the commanded angles as the boat's "target" values.
  * @access  Public
  */
