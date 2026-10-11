@@ -7,10 +7,10 @@ export async function getBoat() {
   return data;
 }
 
-// POST /api/boat/control { rudder?, sail? } -> publishes a manual override
-// to /rudder_angle and /mainsail_angle and records the target angles.
-export async function sendManualControl({ rudder, sail }) {
-  const { data } = await client.post('/boat/control', { rudder, sail });
+// POST /api/boat/control { rudder?, sail?, jib?, jibSide? } -> manual override.
+// jibSide is 0 (port) or 1 (starboard).
+export async function sendManualControl({ rudder, sail, jib, jibSide }) {
+  const { data } = await client.post('/boat/control', { rudder, sail, jib, jibSide });
   return data;
 }
 

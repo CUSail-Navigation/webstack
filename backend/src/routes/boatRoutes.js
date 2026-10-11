@@ -44,18 +44,19 @@ router.post('/update', async (req, res) => {
 
 /**
  * @route   POST /api/boat/control
- * @desc    Manual rudder/sail override from the web UI. Publishes to
- *          /rudder_angle and /mainsail_angle, and
- *          records the commanded angles as the boat's "target" values.
+ * @desc    Manual rudder/mainsail/jib override from the web UI. Publishes to
+ *          /rudder_angle, /mainsail_angle, /jib_angle, /jib_side_flag, and
+ *          records rudder/sail commands as the boat's "target" values.
  * @access  Public
  */
 router.post('/control', async (req, res) => {
-    const { rudder, sail } = req.body;
+    const { rudder, sail, jib, jibSide } = req.body;
     const rudderNum = rudder === undefined ? undefined : Number(rudder);
     const sailNum = sail === undefined ? undefined : Number(sail);
+    const jibNum = jib === undefined ? undefined : Number(jib);
 
-    if (rudderNum === undefined && sailNum === undefined) {
-        return res.status(400).json({ error: 'Request must include rudder and/or sail' });
+    if (rudderNum === undefined && sailNum === undefined && jibNum === undefined && jibSide === undefined) {
+        return res.status(400).json({ error: 'Request must include rudder, sail, jib, and/or jibSide' });
     }
     if (rudderNum !== undefined && !Number.isFinite(rudderNum)) {
         return res.status(400).json({ error: 'rudder must be a number' });
@@ -63,9 +64,15 @@ router.post('/control', async (req, res) => {
     if (sailNum !== undefined && !Number.isFinite(sailNum)) {
         return res.status(400).json({ error: 'sail must be a number' });
     }
+    if (jibNum !== undefined && !Number.isFinite(jibNum)) {
+        return res.status(400).json({ error: 'jib must be a number' });
+    }
+    if (jibSide !== undefined && jibSide !== 0 && jibSide !== 1) {
+        return res.status(400).json({ error: 'jibSide must be 0 (port) or 1 (starboard)' });
+    }
 
     try {
-        sendManualControl({ rudder: rudderNum, sail: sailNum });
+        sendManualControl({ rudder: rudderNum, sail: sailNum, jib: jibNum, jibSide });
 
         const update = { updatedAt: Date.now() };
         if (rudderNum !== undefined) update.targetRudderAngle = rudderNum;
