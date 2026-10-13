@@ -184,6 +184,8 @@ test run, `npm run test:watch` for watch mode, and `npm run build` to produce
 
 ## Data Model
 
+Heading is in degrees in [-180, 180): 0=east, 90=north, -180=west, -90=south, increasing counter-clockwise. The backend stores `/imu.z` unchanged; the map marker and heading dial convert to screen rotation only when rendering. Relative wind and actuator angles retain their hardware reference frames.
+
 **Boat** is a single "current state" document, continuously upserted from ROS — not a time-series log. It tracks rudder and sail angle from four independent sources (web UI target, servo feedback, handheld radio, and autopilot), plus heading, wind angle, control mode, tacking state, distance to destination, and dropped-packet count.
 
 **WaypointQueue** stores the boat's last confirmed ordered queue and `confirmedAt` in MongoDB, refreshed every second.

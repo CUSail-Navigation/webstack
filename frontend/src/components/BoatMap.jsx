@@ -33,7 +33,7 @@ function boatIcon(heading = 0) {
     fillOpacity: 1,
     strokeColor: '#ffffff',
     strokeWeight: 1.5,
-    // Boat yaw is counterclockwise from east; Maps rotates clockwise from north.
+    // Heading is CCW from east; Maps rotation is CW from north.
     rotation: (90 - heading + 360) % 360,
     scale: 1.3,
     anchor: new window.google.maps.Point(0, 0),

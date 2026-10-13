@@ -1,7 +1,7 @@
 // A single circular gauge: a needle rotated to `value` degrees from
-// straight up, drawn with plain inline SVG (no charting library needed
-// for something this simple).
-export default function Dial({ label, value, color = '#d64545', size = 90 }) {
+// straight up for relative actuators, or CCW from east for heading, drawn with
+// plain inline SVG (no charting library needed for something this simple).
+export default function Dial({ label, value, color = '#d64545', size = 90, isHeading = false }) {
   const radius = size / 2;
   const needleLength = radius * 0.7;
   const displayValue = Number.isFinite(value) ? value : 0;
@@ -43,7 +43,7 @@ export default function Dial({ label, value, color = '#d64545', size = 90 }) {
             stroke={color}
             strokeWidth={3}
             strokeLinecap="round"
-            transform={`rotate(${displayValue})`}
+            transform={`rotate(${isHeading ? 90 - displayValue : displayValue})`}
             style={{ transition: 'transform 400ms ease-out' }}
           />
           <circle r={4} fill="var(--dial-hub)" />

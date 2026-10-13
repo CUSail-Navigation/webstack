@@ -45,7 +45,7 @@ const parseGpsMessage = async (message) => {
 
 const parseImuMessage = async (message) => {
     // The boat publishes roll/pitch/yaw in degrees as geometry_msgs/Vector3.
-    // Keep its heading convention (0=east, 90=north) in stored telemetry.
+    // Store heading unchanged: 0=east, 90=north, -90=south, [-180, 180), CCW-positive.
     const heading = message?.z;
     if (!Number.isFinite(heading)) {
         return;

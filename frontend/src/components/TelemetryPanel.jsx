@@ -20,7 +20,7 @@ export default function TelemetryPanel() {
     <div className="panel">
       <h2>Telemetry</h2>
       <div className="dial-row">
-        <Dial label="Heading" value={boat?.heading} color="#3a7ca5" />
+        <Dial isHeading label="Heading" value={boat?.heading} color="#3a7ca5" />
         <Dial label="Rudder" value={boat?.actualRudderAngle} color="#d64545" />
         <Dial label="Sail" value={boat?.actualSailAngle} color="#3a9d5d" />
       </div>
